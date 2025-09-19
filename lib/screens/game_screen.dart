@@ -8,9 +8,10 @@ class GameScreen extends StatefulWidget{
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>{
-  final int rows = 4;
-  final int columns = 5;
+class _GameScreenState extends State<GameScreen> {
+  int rows = 4;
+  int columns = 5;
+
   late List<Color> colors; // Lista de colores para los cuadros
   late List<bool> revealed; // Indica si un cuadro está visible
   List<int> selectedIndices = []; // Guarda los índices seleccionados
@@ -18,14 +19,27 @@ class _GameScreenState extends State<GameScreen>{
   @override
   void initState() {
     super.initState();
-    colors = generateColors();
-    revealed = List.generate(rows * columns, (_) => false);
+    _startNewGame();
   }
 
+  void _startNewGame(){
+    colors = _generateColors();
+    revealed = List.generate(rows * columns, (_) => false);
+    selectedIndices.clear();
+  }
   // Generar 10 colores aleatorios y duplicar cada uno para formar pares
-List<Color> generateColors(){
+  List<Color> _generateColors(){
   Random random = Random();
-  List<Color> baseColors = List.generate(10, (_){
+  int totalTiles = rows * columns;
+
+  // Asegurar que sea un número par de cuadros
+  if(totalTiles % 2 != 0){
+    throw Exception("La cuadrícula debe tener un número par de cuadros.");
+  }
+
+  int numPairs = totalTiles ~/ 2;
+
+  List<Color> baseColors = List.generate(numPairs, (_){
     return Color.fromARGB(
       255,
       random.nextInt(256),
@@ -36,14 +50,13 @@ List<Color> generateColors(){
 
   // Duplicar los colores para tener pares
   List<Color> pairedColors = [...baseColors, ...baseColors];
-
   // Mezclar la lista
   pairedColors.shuffle();
   return pairedColors;
 }
 
-  void onTileTap(int index){
-    if(revealed[index] || selectedIndices.length == 2) return;
+  void _onTileTap(int index){
+    if (revealed[index] || selectedIndices.contains(index) || selectedIndices.length == 2) return;
 
     setState(() {
       revealed[index] = true;
@@ -64,33 +77,39 @@ List<Color> generateColors(){
 
           // Verificar si el juego terminó
           if(revealed.every((e) => e)){
-            showDialog(
-              context: context,
-              builder: (_) => AlertDialog(
-                title: const Text('¡Juego Terminado!'),
-                content: const Text('Todos los pares encontrados'),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      resetGame();
-                    },
-                    child: const Text('Reiniciar'),
-                  ),
-                ],
-              ),
-            );
+            _showWinDialog();
           }
         });
       });
     }
   }
 
-  void resetGame(){
-    setState(() {
-      colors = generateColors();
-      revealed = List.generate(rows * columns, (_) => false);
-      selectedIndices.clear();
+  void _showWinDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('¡Juego Terminado!'),
+        content: const Text ('Has encontrado todos los pares'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              setState((){
+                _startNewGame();
+              });
+            },
+            child: const Text('Reiniciar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _changeBoardSize(int newRows, int newColumns) {
+    setState((){
+      rows = newRows;
+      columns = newColumns;
+      _startNewGame();
     });
   }
 
@@ -98,17 +117,48 @@ List<Color> generateColors(){
   Widget build(BuildContext context){
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nombre: Denzel Omar Mendoza Vázquez')
+        title: const Text('Nombre: Denzel Omar Mendoza Vázquez'),
+        actions: [
+          IconButton(
+            onPressed: () {
+    setState(() {
+    _startNewGame();
+    });
+    },
+
+    icon: const Icon(Icons.refresh),
+    tooltip: 'Reiniciar',
+
+    ),
+
+    PopupMenuButton<String>(
+    onSelected: (value) {
+    if (value == "4x5") _changeBoardSize(4, 5);
+    if (value == "4x6") _changeBoardSize(4, 6);
+    if (value == "5x8") _changeBoardSize(5, 8);
+    },
+    itemBuilder: (context) => [
+    const PopupMenuItem(value: "4x5", child: Text("Tablero 4x5")),
+    const PopupMenuItem(value: "4x6", child: Text("Tablero 4x6")),
+    const PopupMenuItem(value: "5x8", child: Text("Tablero 5x8")),
+    ],
+    ),
+
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.count(
-          crossAxisCount: 8,
+          crossAxisCount: columns,
+          mainAxisSpacing: 8,
           crossAxisSpacing: 8,
           children: List.generate(rows * columns, (index){
-            return MemoryTile(
-                color: Colors.grey,
-                actualColor: colors[index],
+            return GestureDetector(
+              onTap: () => _onTileTap(index),
+              child: MemoryTile(
+                color: revealed[index] ? colors[index] : Colors.grey,
+                // actualColor: colors[index],
+              ),
             );
           }),
         ),
@@ -119,9 +169,9 @@ List<Color> generateColors(){
 
 class MemoryTile extends StatelessWidget {
   final Color color;
-  final Color actualColor;
+  // final Color actualColor;
 
-  const MemoryTile({super.key, required this.color, required this.actualColor});
+  const MemoryTile({super.key, required this.color/*, required this.actualColor*/});
 
   @override
   Widget build(BuildContext context) {
