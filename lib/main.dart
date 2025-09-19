@@ -28,9 +28,9 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
-      home: const MyHomePage(title: 'Denzel Omar Mendoza Vázquez'),
+      home: const MyHomePage(title: 'Nombre: Denzel Omar Mendoza Vázquez'),
     );
   }
 }
