@@ -12,11 +12,14 @@ class _GameScreenState extends State<GameScreen>{
   final int rows = 4;
   final int columns = 5;
   late List<Color> colors; // Lista de colores para los cuadros
+  late List<bool> revealed; // Indica si un cuadro está visible
+  List<int> selectedIndices = []; // Guarda los índices seleccionados
 
   @override
   void initState() {
     super.initState();
     colors = generateColors();
+    revealed = List.generate(rows * columns, (_) => false);
   }
 
   // Generar 10 colores aleatorios y duplicar cada uno para formar pares
@@ -38,6 +41,58 @@ List<Color> generateColors(){
   pairedColors.shuffle();
   return pairedColors;
 }
+
+  void onTileTap(int index){
+    if(revealed[index] || selectedIndices.length == 2) return;
+
+    setState(() {
+      revealed[index] = true;
+      selectedIndices.add(index);
+    });
+
+    if(selectedIndices.length == 2){
+      Future.delayed(const Duration(seconds: 1), () {
+        setState(() {
+          int first = selectedIndices[0];
+          int second = selectedIndices[1];
+
+          if (colors[first] != colors[second]) {
+            revealed[first] = false;
+            revealed[second] = false;
+          }
+          selectedIndices.clear();
+
+          // Verificar si el juego terminó
+          if(revealed.every((e) => e)){
+            showDialog(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text('¡Juego Terminado!'),
+                content: const Text('Todos los pares encontrados'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      resetGame();
+                    },
+                    child: const Text('Reiniciar'),
+                  ),
+                ],
+              ),
+            );
+          }
+        });
+      });
+    }
+  }
+
+  void resetGame(){
+    setState(() {
+      colors = generateColors();
+      revealed = List.generate(rows * columns, (_) => false);
+      selectedIndices.clear();
+    });
+  }
 
   @override
   Widget build(BuildContext context){
